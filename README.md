@@ -5,6 +5,7 @@ A simple, minimal task manager for macOS, built with SwiftUI.
 - Tasks with **title, due date + optional time, priority, project and status**
 - **List view** and **Board view** (toggle at the top). On the board, drag cards between status columns; double-click a card's title to rename it
 - **Notifications** for every task: pick a reminder with the bell icon (at due time, 5/15/30 min, 1 hour or 1 day before). Notifications have *Mark as Done* and *Snooze 10 min* buttons and arrive even when Taskly is closed
+- **Lives in the menu bar:** closing the window (red button or `⌘W`) hides it and removes the Dock icon, but Taskly keeps running so reminders still fire. Click the ✓ icon in the menu bar to show/hide the window; right-click it for *New Task* and *Quit*. `⌘Q` quits completely
 - Font: **Plus Jakarta Sans** (bundled, SIL Open Font License)
 - Sorted automatically: **High → Normal → Low**, then by due date
 - **New Task** button (top right, or `⌘N`) and an **Add task** row under the list
@@ -41,7 +42,7 @@ This builds `build/Taskly.app` and copies it to `/Applications`. Re-run it after
 
 | File | What it does |
 | --- | --- |
-| `Sources/Taskly/TasklyApp.swift` | App entry point, window style, menu shortcuts (`⌘N`, `⌘,`) |
+| `Sources/Taskly/TasklyApp.swift` | App entry point, window style, menu shortcuts (`⌘N`, `⌘W`, `⌘,`), menu bar icon and hide-on-close behavior |
 | `Sources/Taskly/Models.swift` | Data types (task, priority, status, project, settings) and the default/sample data |
 | `Sources/Taskly/Store.swift` | Loading/saving, sorting, filtering, add/edit/delete logic; the "click outside to close Completed" handler |
 | `Sources/Taskly/Theme.swift` | Light/dark colors, color presets, date formatting, **column widths** |

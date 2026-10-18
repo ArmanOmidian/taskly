@@ -159,7 +159,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 10 * 60, repeats: false)
                 center.add(UNNotificationRequest(identifier: idString + self.snoozeSuffix, content: snoozed, trigger: trigger))
             } else {
-                NSApp.activate(ignoringOtherApps: true)
+                AppDelegate.shared?.showMainWindow()
             }
             completionHandler()
         }

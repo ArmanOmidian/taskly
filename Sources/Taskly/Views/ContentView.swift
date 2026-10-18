@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject private var store: TaskStore
     @EnvironmentObject private var ui: UIState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         let palette = Palette.forScheme(colorScheme)
@@ -33,9 +34,12 @@ struct ContentView: View {
         .environment(\.palette, palette)
         .font(.jakarta(13))
         .frame(minWidth: 1000, minHeight: 560)
+        .background(WindowAccessor { window in AppDelegate.shared?.attach(window: window) })
         .onAppear {
             applyTheme(store.data.settings.theme)
             NotificationManager.shared.setup(store: store)
+            let open = openWindow
+            AppDelegate.shared?.openWindowFallback = { open(id: "main") }
         }
         .onChange(of: store.data.settings.theme) { _, theme in applyTheme(theme) }
     }
