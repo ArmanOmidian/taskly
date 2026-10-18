@@ -13,7 +13,7 @@ struct ColumnHeader: View {
             Text("Status").padding(.leading, 8).frame(width: Col.status, alignment: .leading)
             Text("Actions").frame(width: Col.actions, alignment: .center)
         }
-        .font(.system(size: 12, weight: .semibold))
+        .font(.jakarta(12, .semibold))
         .foregroundStyle(palette.primaryText)
         .padding(.horizontal, 10)
         .frame(height: 34)
@@ -51,8 +51,12 @@ struct TaskRow: View {
                 .padding(.trailing, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            DueDatePicker(date: task.dueDate, relative: store.data.settings.relativeDates, muted: closed) { newDate in
-                store.update(task.id) { $0.dueDate = newDate }
+            DueDatePicker(date: task.dueDate, hasTime: task.dueHasTime,
+                          relative: store.data.settings.relativeDates, muted: closed) { newDate, hasTime in
+                store.update(task.id) {
+                    $0.dueDate = newDate
+                    $0.dueHasTime = hasTime
+                }
             }
             .frame(width: Col.due, alignment: .leading)
 
@@ -86,13 +90,18 @@ struct TaskRow: View {
             }
             .frame(width: Col.status, alignment: .leading)
 
-            IconButton(systemName: "trash", help: "Delete task", destructive: true) {
-                withAnimation(.easeOut(duration: 0.2)) { store.delete(task.id) }
+            HStack(spacing: 2) {
+                ReminderButton(reminder: task.reminder, hasDate: task.dueDate != nil) { r in
+                    store.update(task.id) { $0.reminder = r }
+                }
+                IconButton(systemName: "trash", help: "Delete task", destructive: true) {
+                    withAnimation(.easeOut(duration: 0.2)) { store.delete(task.id) }
+                }
             }
-            .opacity(hover ? 1 : 0.55)
+            .opacity(hover || (task.reminder != .none && task.dueDate != nil) ? 1 : 0.55)
             .frame(width: Col.actions, alignment: .center)
         }
-        .font(.system(size: 13))
+        .font(.jakarta(13))
         .padding(.horizontal, 10)
         .frame(height: 38)
         .background(RoundedRectangle(cornerRadius: 9).fill(hover ? palette.hover : Color.clear))
@@ -114,7 +123,7 @@ struct AddTaskRow: View {
                     .frame(width: 16, height: 16)
                     .frame(width: Col.check, alignment: .leading)
                 Text("Add task")
-                    .font(.system(size: 13))
+                    .font(.jakarta(13))
                 Spacer()
             }
             .foregroundStyle(hover ? palette.primaryText : palette.secondaryText)

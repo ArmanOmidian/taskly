@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Taskly",
-            path: "Sources/Taskly"
+            path: "Sources/Taskly",
+            resources: [.copy("Fonts")]
         )
     ]
 )

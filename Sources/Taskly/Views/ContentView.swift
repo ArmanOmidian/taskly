@@ -25,12 +25,18 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(panel(palette, radius: 18))
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
+        .padding(.top, 36)   // grey strip at the top that holds the window's close/minimize/zoom buttons
         .background(palette.window)
         .ignoresSafeArea()
         .environment(\.palette, palette)
+        .font(.jakarta(13))
         .frame(minWidth: 1000, minHeight: 560)
-        .onAppear { applyTheme(store.data.settings.theme) }
+        .onAppear {
+            applyTheme(store.data.settings.theme)
+            NotificationManager.shared.setup(store: store)
+        }
         .onChange(of: store.data.settings.theme) { _, theme in applyTheme(theme) }
     }
 

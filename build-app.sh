@@ -17,6 +17,10 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
 
+# Fonts (Plus Jakarta Sans)
+mkdir -p "$APP/Contents/Resources/Fonts"
+cp Sources/Taskly/Fonts/*.ttf Sources/Taskly/Fonts/OFL.txt "$APP/Contents/Resources/Fonts/"
+
 echo "→ Making icon…"
 if [[ -f Resources/AppIcon.png ]]; then
   ICONSET="build/AppIcon.iconset"

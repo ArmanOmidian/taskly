@@ -2,12 +2,15 @@
 
 A simple, minimal task manager for macOS, built with SwiftUI.
 
-- Tasks with **title, due date, priority, project and status**
+- Tasks with **title, due date + optional time, priority, project and status**
+- **List view** and **Board view** (toggle at the top). On the board, drag cards between status columns; double-click a card's title to rename it
+- **Notifications** for every task: pick a reminder with the bell icon (at due time, 5/15/30 min, 1 hour or 1 day before). Notifications have *Mark as Done* and *Snooze 10 min* buttons and arrive even when Taskly is closed
+- Font: **Plus Jakarta Sans** (bundled, SIL Open Font License)
 - Sorted automatically: **High → Normal → Low**, then by due date
 - **New Task** button (top right, or `⌘N`) and an **Add task** row under the list
 - Finished tasks hide in a collapsible **Completed** section — click it to open, click anywhere outside it (or press `Esc`) to close
 - Sidebar: search, All Tasks / Today / Upcoming, Projects (click **+** to add, right-click to delete), Settings
-- **Settings** (`⌘,`): theme (System / Light / Dark), relative or calendar dates, and fully editable priorities, statuses and projects (rename, recolor, reorder, add, delete), plus defaults for new tasks
+- **Settings** (`⌘,`): notifications (on/off, default reminder, time used for date-only tasks, test button), theme (System / Light / Dark), relative or calendar dates, and fully editable priorities, statuses and projects (rename, recolor, reorder, add, delete), plus defaults for new tasks
 - Deleting a task shows an **Undo** toast
 - Data is saved automatically to `~/Library/Application Support/Taskly/data.json`
 
@@ -32,6 +35,8 @@ chmod +x build-app.sh
 
 This builds `build/Taskly.app` and copies it to `/Applications`. Re-run it after you change the code.
 
+> Notifications only work in the installed app (`./build-app.sh --install`), not when running from Xcode. The first launch asks for permission — click **Allow**.
+
 ## Where things live
 
 | File | What it does |
@@ -43,6 +48,9 @@ This builds `build/Taskly.app` and copies it to `/Applications`. Re-run it after
 | `Sources/Taskly/Views/ContentView.swift` | Overall layout (sidebar panel + main panel) and theme switching |
 | `Sources/Taskly/Views/Sidebar.swift` | Left panel: search, lists, projects, settings |
 | `Sources/Taskly/Views/TaskListView.swift` | Header, task list, Completed section, empty state, undo toast |
+| `Sources/Taskly/Views/BoardView.swift` | Board view: status columns, draggable cards |
+| `Sources/Taskly/Notifications.swift` | Scheduling reminders, notification buttons (Done / Snooze) |
+| `Sources/Taskly/Fonts.swift` + `Fonts/` | Plus Jakarta Sans loading and the `.jakarta(size, weight)` helper |
 | `Sources/Taskly/Views/TaskRow.swift` | A single task row and the column header |
 | `Sources/Taskly/Views/Components.swift` | Reusable pieces: pickers, date picker, check circle, icon buttons |
 | `Sources/Taskly/Views/SettingsView.swift` | The Settings screen |

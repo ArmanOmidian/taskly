@@ -7,6 +7,10 @@ struct TasklyApp: App {
     @StateObject private var store = TaskStore()
     @StateObject private var ui = UIState()
 
+    init() {
+        FontLoader.register()
+    }
+
     var body: some Scene {
         WindowGroup("Taskly") {
             ContentView()

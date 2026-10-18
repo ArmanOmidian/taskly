@@ -4,7 +4,12 @@ import AppKit
 /// Holds all app data and saves it to
 /// ~/Library/Application Support/Taskly/data.json on every change.
 final class TaskStore: ObservableObject {
-    @Published var data: AppData { didSet { save() } }
+    @Published var data: AppData {
+        didSet {
+            save()
+            NotificationManager.shared.scheduleSync(data)
+        }
+    }
     @Published var recentlyDeleted: TaskItem?
 
     let fileURL: URL
@@ -151,11 +156,13 @@ final class TaskStore: ObservableObject {
     // MARK: - Task mutations
 
     @discardableResult
-    func addTask(for item: SidebarItem) -> UUID {
+    func addTask(for item: SidebarItem, statusID: UUID? = nil) -> UUID {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         var t = TaskItem(title: "", dueDate: nil, priorityID: defaultPriorityID,
-                         statusID: defaultStatusID, projectID: nil)
+                         statusID: statusID ?? defaultStatusID, projectID: nil)
+        t.reminder = data.settings.defaultReminder
+        if isClosed(t) { t.completedAt = Date() }
         switch item {
         case .today: t.dueDate = today
         case .upcoming: t.dueDate = cal.date(byAdding: .day, value: 1, to: today)
@@ -306,10 +313,10 @@ final class UIState: ObservableObject {
     var completedFrame: CGRect = .zero
     private var clickMonitor: Any?
 
-    func newTask(store: TaskStore) {
+    func newTask(store: TaskStore, statusID: UUID? = nil) {
         if selection == .settings { selection = .all }
         showCompleted = false
-        let id = store.addTask(for: selection)
+        let id = store.addTask(for: selection, statusID: statusID)
         draftID = id
         focusRequest = id
     }

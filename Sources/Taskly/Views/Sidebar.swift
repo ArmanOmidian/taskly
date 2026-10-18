@@ -54,7 +54,7 @@ struct Sidebar: View {
                                 .frame(width: 18)
                             TextField("Project name", text: $newProjectName)
                                 .textFieldStyle(.plain)
-                                .font(.system(size: 13))
+                                .font(.jakarta(13))
                                 .focused($newProjectFocused)
                                 .onSubmit { commitProject() }
                                 .onExitCommand { cancelProject() }
@@ -66,7 +66,7 @@ struct Sidebar: View {
 
                     if store.data.projects.isEmpty && !addingProject {
                         Text("No projects yet")
-                            .font(.system(size: 12))
+                            .font(.jakarta(12))
                             .foregroundStyle(palette.tertiaryText)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
@@ -82,7 +82,7 @@ struct Sidebar: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.top, 44)   // room for the window's traffic-light buttons
+        .padding(.top, 14)
         .padding(.bottom, 12)
         .onChange(of: newProjectFocused) { _, isFocused in
             if !isFocused && addingProject { commitProject() }
@@ -96,7 +96,7 @@ struct Sidebar: View {
                 .foregroundStyle(palette.tertiaryText)
             TextField("Search", text: $ui.search)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(.jakarta(13))
             if !ui.search.isEmpty {
                 Button { ui.search = "" } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -137,7 +137,7 @@ struct SectionLabel: View {
 
     var body: some View {
         Text(title.uppercased())
-            .font(.system(size: 10.5, weight: .semibold))
+            .font(.jakarta(10.5, .semibold))
             .tracking(0.6)
             .foregroundStyle(palette.tertiaryText)
             .padding(.horizontal, 10)
@@ -164,13 +164,13 @@ struct SidebarRow<Icon: View>: View {
                     .foregroundStyle(selected ? palette.primaryText : palette.secondaryText)
                     .frame(width: 18)
                 Text(title)
-                    .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                    .font(.jakarta(13, selected ? .semibold : .regular))
                     .foregroundStyle(palette.primaryText)
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 if let count, count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.jakarta(11, .medium))
                         .monospacedDigit()
                         .foregroundStyle(palette.tertiaryText)
                 }

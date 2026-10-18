@@ -5,6 +5,9 @@ struct TaskListView: View {
     @EnvironmentObject private var ui: UIState
     @Environment(\.palette) private var palette
     @FocusState private var focused: UUID?
+    @State private var editingID: UUID?
+
+    private var isBoard: Bool { store.data.settings.viewMode == .board }
 
     /// Open tasks, sorted High → Normal → Low. A task being typed stays at the bottom.
     private var openList: [TaskItem] {
@@ -22,31 +25,39 @@ struct TaskListView: View {
         VStack(alignment: .leading, spacing: 0) {
             header(openCount: open.filter { !$0.title.isEmpty }.count)
 
-            ColumnHeader()
-                .padding(.horizontal, 18)
-            Rectangle()
-                .fill(palette.separator)
-                .frame(height: 1)
-                .padding(.horizontal, 28)
+            if isBoard {
+                BoardView(
+                    tasks: store.data.tasks.filter { store.matches($0, ui.selection, search: ui.search) },
+                    focus: $focused,
+                    editingID: $editingID
+                )
+            } else {
+                ColumnHeader()
+                    .padding(.horizontal, 18)
+                Rectangle()
+                    .fill(palette.separator)
+                    .frame(height: 1)
+                    .padding(.horizontal, 28)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    if open.isEmpty {
-                        EmptyState(allDone: !closed.isEmpty)
-                    }
-                    ForEach(open) { task in
-                        TaskRow(task: task, focus: $focused)
-                    }
-                    AddTaskRow { ui.newTask(store: store) }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if open.isEmpty {
+                            EmptyState(allDone: !closed.isEmpty)
+                        }
+                        ForEach(open) { task in
+                            TaskRow(task: task, focus: $focused)
+                        }
+                        AddTaskRow { ui.newTask(store: store) }
 
-                    if !closed.isEmpty {
-                        CompletedSection(tasks: closed, focus: $focused)
-                            .padding(.top, 18)
+                        if !closed.isEmpty {
+                            CompletedSection(tasks: closed, focus: $focused)
+                                .padding(.top, 18)
+                        }
                     }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 8)
+                    .padding(.bottom, 60)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 8)
-                .padding(.bottom, 60)
             }
         }
         .overlay(alignment: .bottom) { undoToast }
@@ -74,6 +85,7 @@ struct TaskListView: View {
             if ui.draftID == old {
                 withAnimation(.easeOut(duration: 0.2)) { ui.draftID = nil }
             }
+            if editingID == old { editingID = nil }
         }
     }
 
@@ -102,14 +114,16 @@ struct TaskListView: View {
                         Circle().fill(Color(hex: p.colorHex)).frame(width: 10, height: 10)
                     }
                     Text(title)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.jakarta(22, .semibold))
                         .foregroundStyle(palette.primaryText)
                 }
                 Text(openCount == 1 ? "1 open task" : "\(openCount) open tasks")
-                    .font(.system(size: 12))
+                    .font(.jakarta(12))
                     .foregroundStyle(palette.secondaryText)
             }
             Spacer()
+            ViewModeToggle(mode: $store.data.settings.viewMode)
+                .padding(.trailing, 10)
             NewTaskButton { ui.newTask(store: store) }
         }
         .padding(.horizontal, 28)
@@ -131,7 +145,7 @@ struct TaskListView: View {
                 .buttonStyle(.plain)
                 .fontWeight(.semibold)
             }
-            .font(.system(size: 12))
+            .font(.jakarta(12))
             .foregroundStyle(palette.panel)
             .padding(.horizontal, 16)
             .padding(.vertical, 9)
@@ -148,6 +162,39 @@ struct TaskListView: View {
     }
 }
 
+// MARK: - List / Board toggle
+
+struct ViewModeToggle: View {
+    @Binding var mode: ViewMode
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        HStack(spacing: 2) {
+            option(.list, icon: "list.bullet", help: "List view")
+            option(.board, icon: "square.split.3x1", help: "Board view")
+        }
+        .padding(3)
+        .background(Capsule().fill(palette.inset))
+        .overlay(Capsule().strokeBorder(palette.separator))
+    }
+
+    private func option(_ value: ViewMode, icon: String, help: String) -> some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.2)) { mode = value }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(mode == value ? palette.primaryText : palette.secondaryText)
+                .frame(width: 34, height: 26)
+                .background(Capsule().fill(mode == value ? palette.panel : Color.clear)
+                    .shadow(color: .black.opacity(mode == value ? 0.08 : 0), radius: 2, y: 1))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
 // MARK: - New Task button
 
 struct NewTaskButton: View {
@@ -159,7 +206,7 @@ struct NewTaskButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: "plus").font(.system(size: 12, weight: .bold))
-                Text("New Task").font(.system(size: 13, weight: .medium))
+                Text("New Task").font(.jakarta(13, .medium))
             }
             .foregroundStyle(palette.panel)
             .padding(.horizontal, 14)
@@ -194,9 +241,9 @@ struct CompletedSection: View {
                         .rotationEffect(.degrees(ui.showCompleted ? 90 : 0))
                         .frame(width: 16)
                     Text("Completed")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.jakarta(13, .semibold))
                     Text("\(tasks.count)")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.jakarta(11, .semibold))
                         .monospacedDigit()
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
@@ -242,10 +289,10 @@ struct EmptyState: View {
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(palette.tertiaryText)
             Text(allDone ? "All caught up" : "No tasks here")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.jakarta(14, .semibold))
                 .foregroundStyle(palette.primaryText)
             Text("Press ⌘N or click New Task to add one.")
-                .font(.system(size: 12))
+                .font(.jakarta(12))
                 .foregroundStyle(palette.secondaryText)
         }
         .frame(maxWidth: .infinity)

@@ -5,20 +5,22 @@ struct SettingsView: View {
     @EnvironmentObject private var store: TaskStore
     @Environment(\.palette) private var palette
     @State private var confirmClear = false
+    @State private var permission = "…"
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Settings")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.jakarta(22, .semibold))
                         .foregroundStyle(palette.primaryText)
                     Text("Customize how Taskly looks and works. Changes save automatically.")
-                        .font(.system(size: 12))
+                        .font(.jakarta(12))
                         .foregroundStyle(palette.secondaryText)
                 }
 
                 appearance
+                notifications
                 priorities
                 statuses
                 projects
@@ -51,6 +53,56 @@ struct SettingsView: View {
                     .labelsHidden()
             }
         }
+    }
+
+    private var notifications: some View {
+        SettingsSection(title: "Notifications", icon: "bell",
+                        caption: "Taskly reminds you about open tasks with a due date. Reminders arrive even when the app is closed.") {
+            SettingRow(title: "Enable reminders") {
+                Toggle("", isOn: $store.data.settings.notificationsEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
+            RowDivider()
+            SettingRow(title: "Default reminder", caption: "Given to every new task. Change it per task with the bell icon.") {
+                Picker("", selection: $store.data.settings.defaultReminder) {
+                    ForEach(Reminder.allCases) { Text($0.label).tag($0) }
+                }
+                .labelsHidden()
+                .frame(width: 180)
+            }
+            RowDivider()
+            SettingRow(title: "Time for tasks without a time", caption: "Reminders for date-only tasks are based on this time.") {
+                DatePicker("", selection: allDayTimeBinding, displayedComponents: .hourAndMinute)
+                    .datePickerStyle(.stepperField)
+                    .labelsHidden()
+            }
+            RowDivider()
+            SettingRow(title: "macOS permission", caption: permission) {
+                HStack(spacing: 8) {
+                    Button("Send test") { NotificationManager.shared.sendTest() }
+                    Button("Open System Settings") { NotificationManager.shared.openSystemSettings() }
+                }
+            }
+        }
+        .onAppear {
+            NotificationManager.shared.requestAuthorization { _ in
+                NotificationManager.shared.permissionStatus { permission = $0 }
+            }
+        }
+    }
+
+    private var allDayTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                let m = store.data.settings.allDayReminderMinutes
+                return Calendar.current.date(bySettingHour: m / 60, minute: m % 60, second: 0, of: Date()) ?? Date()
+            },
+            set: {
+                let c = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                store.data.settings.allDayReminderMinutes = (c.hour ?? 9) * 60 + (c.minute ?? 0)
+            }
+        )
     }
 
     private var priorities: some View {
@@ -88,7 +140,7 @@ struct SettingsView: View {
                     extra: {
                         Toggle("Completes task", isOn: closedBinding(s))
                             .toggleStyle(.checkbox)
-                            .font(.system(size: 12))
+                            .font(.jakarta(12))
                             .foregroundStyle(palette.secondaryText)
                             .disabled(!store.canToggleClosed(s.id))
                     }
@@ -205,12 +257,12 @@ struct SettingsSection<Content: View>: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(palette.secondaryText)
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.jakarta(15, .semibold))
                         .foregroundStyle(palette.primaryText)
                 }
                 if let caption {
                     Text(caption)
-                        .font(.system(size: 12))
+                        .font(.jakarta(12))
                         .foregroundStyle(palette.secondaryText)
                 }
             }
@@ -232,11 +284,11 @@ struct SettingRow<Control: View>: View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(.jakarta(13))
                     .foregroundStyle(palette.primaryText)
                 if let caption {
                     Text(caption)
-                        .font(.system(size: 11))
+                        .font(.jakarta(11))
                         .foregroundStyle(palette.secondaryText)
                 }
             }
@@ -271,7 +323,7 @@ struct EditableRow<Item: Colorable, Extra: View>: View {
             ColorSwatchPicker(hex: $item.colorHex)
             TextField("Name", text: $item.name)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(.jakarta(13))
                 .foregroundStyle(palette.primaryText)
             extra()
                 .padding(.trailing, 6)
@@ -297,7 +349,7 @@ struct AddRowButton: View {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .semibold))
                     .frame(width: 24)
-                Text(title).font(.system(size: 13))
+                Text(title).font(.jakarta(13))
                 Spacer()
             }
             .foregroundStyle(hover ? palette.primaryText : palette.secondaryText)

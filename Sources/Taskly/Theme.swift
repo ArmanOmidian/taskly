@@ -103,7 +103,7 @@ enum DueFormat {
         return cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: date)).day ?? 0
     }
 
-    static func label(_ date: Date, relative: Bool) -> String {
+    static func dayLabel(_ date: Date, relative: Bool) -> String {
         guard relative else { return date.formatted(.dateTime.month(.abbreviated).day()) }
         let n = dayOffset(date)
         switch n {
@@ -115,16 +115,38 @@ enum DueFormat {
         }
     }
 
-    static func isOverdue(_ date: Date) -> Bool { dayOffset(date) < 0 }
+    static func label(_ date: Date, hasTime: Bool, relative: Bool) -> String {
+        let day = dayLabel(date, relative: relative)
+        guard hasTime else { return day }
+        return day + ", " + date.formatted(date: .omitted, time: .shortened)
+    }
+
+    static func isOverdue(_ date: Date, hasTime: Bool) -> Bool {
+        hasTime ? date < Date() : dayOffset(date) < 0
+    }
+
+    /// Keeps the calendar day of `day` and the hour/minute of `time`.
+    static func combine(day: Date, time: Date) -> Date {
+        let cal = Calendar.current
+        let t = cal.dateComponents([.hour, .minute], from: time)
+        return cal.date(bySettingHour: t.hour ?? 9, minute: t.minute ?? 0, second: 0, of: day) ?? day
+    }
+
+    /// The next full hour from now, on the given day (used when turning time on).
+    static func defaultTime(on day: Date) -> Date {
+        let cal = Calendar.current
+        let hour = min(cal.component(.hour, from: Date()) + 1, 23)
+        return cal.date(bySettingHour: hour, minute: 0, second: 0, of: day) ?? day
+    }
 }
 
 // MARK: - Column widths (shared by header + rows)
 
 enum Col {
     static let check: CGFloat = 30
-    static let due: CGFloat = 120
+    static let due: CGFloat = 158
     static let priority: CGFloat = 108
     static let project: CGFloat = 124
     static let status: CGFloat = 124
-    static let actions: CGFloat = 60
+    static let actions: CGFloat = 72
 }

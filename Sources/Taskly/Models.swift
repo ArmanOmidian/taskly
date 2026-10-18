@@ -11,6 +11,63 @@ struct TaskItem: Identifiable, Codable, Hashable {
     var projectID: UUID?
     var createdAt: Date = Date()
     var completedAt: Date?
+    /// True when the due date includes a specific time (not just a day).
+    var dueHasTime: Bool = false
+    /// When to send a notification relative to the due date.
+    var reminder: Reminder = .none
+}
+
+extension TaskItem {
+    // Tolerant decoding so older data files (without time/reminder) still load.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        dueDate = try c.decodeIfPresent(Date.self, forKey: .dueDate)
+        priorityID = try c.decode(UUID.self, forKey: .priorityID)
+        statusID = try c.decode(UUID.self, forKey: .statusID)
+        projectID = try c.decodeIfPresent(UUID.self, forKey: .projectID)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
+        dueHasTime = try c.decodeIfPresent(Bool.self, forKey: .dueHasTime) ?? false
+        reminder = try c.decodeIfPresent(Reminder.self, forKey: .reminder) ?? .none
+    }
+}
+
+/// Notification timing for a task.
+enum Reminder: String, Codable, CaseIterable, Identifiable {
+    case none, atTime, min5, min15, min30, hour1, day1
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .none: return "No reminder"
+        case .atTime: return "At due time"
+        case .min5: return "5 minutes before"
+        case .min15: return "15 minutes before"
+        case .min30: return "30 minutes before"
+        case .hour1: return "1 hour before"
+        case .day1: return "1 day before"
+        }
+    }
+
+    /// Seconds before the due time, or nil for no reminder.
+    var offset: TimeInterval? {
+        switch self {
+        case .none: return nil
+        case .atTime: return 0
+        case .min5: return 5 * 60
+        case .min15: return 15 * 60
+        case .min30: return 30 * 60
+        case .hour1: return 60 * 60
+        case .day1: return 24 * 60 * 60
+        }
+    }
+}
+
+enum ViewMode: String, Codable, CaseIterable {
+    case list, board
 }
 
 /// Anything with an editable name + color (priorities, statuses, projects).
@@ -60,6 +117,12 @@ struct AppSettings: Codable, Equatable {
     var defaultStatusID: UUID?
     /// Status applied when you tick the circle next to a task.
     var doneStatusID: UUID?
+    var viewMode: ViewMode = .list
+    var notificationsEnabled: Bool = true
+    /// Reminder given to newly created tasks.
+    var defaultReminder: Reminder = .atTime
+    /// For tasks that have a date but no time: when (minutes after midnight) the reminder is based.
+    var allDayReminderMinutes: Int = 9 * 60
 
     init() {}
 
@@ -71,6 +134,10 @@ struct AppSettings: Codable, Equatable {
         defaultPriorityID = try c.decodeIfPresent(UUID.self, forKey: .defaultPriorityID)
         defaultStatusID = try c.decodeIfPresent(UUID.self, forKey: .defaultStatusID)
         doneStatusID = try c.decodeIfPresent(UUID.self, forKey: .doneStatusID)
+        viewMode = try c.decodeIfPresent(ViewMode.self, forKey: .viewMode) ?? .list
+        notificationsEnabled = try c.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? true
+        defaultReminder = try c.decodeIfPresent(Reminder.self, forKey: .defaultReminder) ?? .atTime
+        allDayReminderMinutes = try c.decodeIfPresent(Int.self, forKey: .allDayReminderMinutes) ?? 9 * 60
     }
 }
 

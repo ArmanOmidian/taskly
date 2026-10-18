@@ -110,8 +110,8 @@ struct OptionRow: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Text(item.name.isEmpty ? "Untitled" : item.name)
-                    .font(.system(size: 13))
-                    .foregroundStyle(item.id == nil ? Color.secondary : Color.primary)
+                    .font(.jakarta(13))
+                    .foregroundStyle(Color.primary)
                 Spacer(minLength: 18)
                 if isSelected {
                     Image(systemName: "checkmark")
@@ -132,13 +132,15 @@ struct OptionRow: View {
     }
 }
 
-// MARK: - Due date picker
+// MARK: - Due date + time picker
 
 struct DueDatePicker: View {
     let date: Date?
+    let hasTime: Bool
     let relative: Bool
     let muted: Bool
-    let onChange: (Date?) -> Void
+    /// (new date, whether it includes a time)
+    let onChange: (Date?, Bool) -> Void
 
     @Environment(\.palette) private var palette
     @State private var open = false
@@ -148,7 +150,7 @@ struct DueDatePicker: View {
         Button { open.toggle() } label: {
             HStack(spacing: 6) {
                 if let date {
-                    Text(DueFormat.label(date, relative: relative))
+                    Text(DueFormat.label(date, hasTime: hasTime, relative: relative))
                         .foregroundStyle(color(for: date))
                 } else {
                     Image(systemName: "calendar")
@@ -163,52 +165,147 @@ struct DueDatePicker: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .popover(isPresented: $open, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 6) {
                     quick("Today", days: 0)
                     quick("Tomorrow", days: 1)
                     quick("Next week", days: 7)
                 }
+
                 DatePicker(
                     "",
                     selection: Binding(
                         get: { date ?? Date() },
-                        set: { onChange(Calendar.current.startOfDay(for: $0)) }
+                        set: { picked in
+                            if hasTime, let date {
+                                onChange(DueFormat.combine(day: picked, time: date), true)
+                            } else {
+                                onChange(Calendar.current.startOfDay(for: picked), false)
+                            }
+                        }
                     ),
                     displayedComponents: .date
                 )
                 .datePickerStyle(.graphical)
                 .labelsHidden()
 
+                HStack(spacing: 10) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    Toggle("Time", isOn: Binding(
+                        get: { hasTime },
+                        set: { on in
+                            let day = date ?? Calendar.current.startOfDay(for: Date())
+                            if on {
+                                onChange(DueFormat.defaultTime(on: day), true)
+                            } else {
+                                onChange(Calendar.current.startOfDay(for: day), false)
+                            }
+                        }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    Spacer()
+                    if hasTime, let date {
+                        DatePicker(
+                            "",
+                            selection: Binding(
+                                get: { date },
+                                set: { onChange(DueFormat.combine(day: date, time: $0), true) }
+                            ),
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.stepperField)
+                        .labelsHidden()
+                    }
+                }
+
                 if date != nil {
                     Button {
-                        onChange(nil)
+                        onChange(nil, false)
                         open = false
                     } label: {
                         Label("Remove date", systemImage: "xmark.circle")
-                            .font(.system(size: 12))
+                            .font(.jakarta(12))
                             .foregroundStyle(palette.danger)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(12)
+            .padding(14)
+            .frame(width: 250)
         }
     }
 
     private func color(for date: Date) -> Color {
         if muted { return palette.tertiaryText }
-        return DueFormat.isOverdue(date) ? palette.danger : palette.primaryText
+        return DueFormat.isOverdue(date, hasTime: hasTime) ? palette.danger : palette.primaryText
     }
 
     private func quick(_ title: String, days: Int) -> some View {
         Button(title) {
             let cal = Calendar.current
-            let d = cal.date(byAdding: .day, value: days, to: cal.startOfDay(for: Date())) ?? Date()
-            onChange(d)
-            open = false
+            let day = cal.date(byAdding: .day, value: days, to: cal.startOfDay(for: Date())) ?? Date()
+            if hasTime, let date {
+                onChange(DueFormat.combine(day: day, time: date), true)
+            } else {
+                onChange(day, false)
+            }
         }
         .controlSize(.small)
+    }
+}
+
+// MARK: - Reminder (notification) button
+
+struct ReminderButton: View {
+    let reminder: Reminder
+    let hasDate: Bool
+    let onSelect: (Reminder) -> Void
+
+    @Environment(\.palette) private var palette
+    @State private var open = false
+    @State private var hover = false
+
+    private var active: Bool { reminder != .none && hasDate }
+
+    var body: some View {
+        Button { open.toggle() } label: {
+            Image(systemName: active ? "bell.fill" : "bell")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(active ? palette.primaryText : (hover ? palette.primaryText : palette.secondaryText))
+                .frame(width: 26, height: 26)
+                .background(RoundedRectangle(cornerRadius: 7).fill(hover ? palette.pill : Color.clear))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help(active ? "Reminder: \(reminder.label)" : "Add a reminder")
+        .popover(isPresented: $open, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Notify me")
+                    .font(.jakarta(11, .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                ForEach(Reminder.allCases) { r in
+                    OptionRow(item: OptionItem(id: nil, name: r.label, color: nil), isSelected: r == reminder) {
+                        onSelect(r)
+                        open = false
+                    }
+                }
+                if !hasDate {
+                    Text("Set a due date to get notified.")
+                        .font(.jakarta(11))
+                        .foregroundStyle(palette.danger)
+                        .padding(.horizontal, 9)
+                        .padding(.top, 6)
+                }
+            }
+            .padding(6)
+            .frame(minWidth: 190)
+        }
     }
 }
 
@@ -291,7 +388,7 @@ struct ColorSwatchPicker: View {
                     selection: Binding(get: { Color(hex: hex) }, set: { hex = $0.hexString }),
                     supportsOpacity: false
                 )
-                .font(.system(size: 12))
+                .font(.jakarta(12))
             }
             .padding(14)
         }
